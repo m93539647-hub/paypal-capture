@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PayPal Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    button { margin: 5px; padding: 10px 20px; font-size: 16px; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <h1>PayPal Sandbox Test</h1>
+
+  <button onclick="createOrder()">Create Order</button>
+  <button onclick="authorizeOrder()">Authorize Order</button>
+  <button onclick="capturePayment()">Capture Payment</button>
+  <button onclick="voidAuthorization()">Void Authorization</button>
+
+  <h2>Response:</h2>
+  <pre id="output"></pre>
+
+  <script>
+    let orderId = null;
+    let authorizationId = null;
+
+    async function createOrder() {
+      const res = await fetch("/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: "10.00", currency: "USD" })
+      });
+      const data = await res.json();
+      orderId = data.id;
+      document.getElementById("output").textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function authorizeOrder() {
+      if (!orderId) return alert("Create an order first!");
+      const res = await fetch("/authorize-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId })
+      });
+      const data = await res.json();
+      authorizationId = data?.purchase_units?.[0]?.payments?.authorizations?.[0]?.id || null;
+      document.getElementById("output").textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function capturePayment() {
+      if (!authorizationId) return alert("Authorize an order first!");
+      const res = await fetch("/capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ authorizationId, amount: "10.00", currency: "USD" })
+      });
+      const data = await res.json();
+      document.getElementById("output").textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function voidAuthorization() {
+      if (!authorizationId) return alert("Authorize an order first!");
+      const res = await fetch("/void", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ authorizationId })
+      });
+      const data = await res.json();
+      document.getElementById("output").textContent = JSON.stringify(data, null, 2);
+    }
+  </script>
+</body>
+</html>
