@@ -2,9 +2,18 @@ import express from "express";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 import mysql from "mysql2/promise";
+import cors from "cors";
 
 dotenv.config();
 const app = express();
+
+// ✅ Enable CORS for your frontend domain
+app.use(cors({
+  origin: ["https://esoftwaresolution.online"], // allowed domain
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+}));
+
 app.use(express.json());
 
 // ✅ MySQL Connection Pool
