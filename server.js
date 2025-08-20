@@ -7,6 +7,7 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// CORS setup
 app.use(cors({
   origin: [
     "https://esoftwaresolution.online",
@@ -22,20 +23,35 @@ app.use(express.json());
 // PayPal credentials from .env
 const PAYPAL_CLIENT = process.env.PAYPAL_CLIENT_ID;
 const PAYPAL_SECRET = process.env.PAYPAL_CLIENT_SECRET;
-const PAYPAL_BASE = "https://api-m.sandbox.paypal.com";
+// Switch sandbox/live by changing PAYPAL_BASE
+const PAYPAL_BASE = process.env.PAYPAL_MODE === "live"
+  ? "https://api-m.paypal.com"
+  : "https://api-m.sandbox.paypal.com";
 
 // Get access token
 async function getAccessToken() {
-  const res = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
-    method: "POST",
-    headers: {
-      "Authorization": "Basic " + Buffer.from(PAYPAL_CLIENT + ":" + PAYPAL_SECRET).toString("base64"),
-      "Content-Type": "application/x-www-form-urlencoded"
-    },
-    body: "grant_type=client_credentials"
-  });
-  const data = await res.json();
-  return data.access_token;
+  try {
+    const res = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
+      method: "POST",
+      headers: {
+        "Authorization": "Basic " + Buffer.from(`${PAYPAL_CLIENT}:${PAYPAL_SECRET}`).toString("base64"),
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: "grant_type=client_credentials"
+    });
+
+    const data = await res.json();
+    if (data.error) {
+      console.error("PayPal token error:", data);
+      throw new Error(data.error_description || "Failed to get access token");
+    }
+
+    console.log("✅ Access token fetched");
+    return data.access_token;
+  } catch (err) {
+    console.error("Error fetching access token:", err);
+    throw err;
+  }
 }
 
 // Create order
@@ -122,6 +138,10 @@ app.post("/void", async (req, res) => {
   }
 });
 
+// Health check
+app.get("/", (req, res) => res.send("✅ PayPal server is running"));
+
+// Render-ready port binding
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
